@@ -1,0 +1,8 @@
+data/*
+forkdata/*
+__pycache__
+results/
+wandb
+compile_commands.json
+.ipynb_checkpoints
+paper_calculations/dmpmodels
