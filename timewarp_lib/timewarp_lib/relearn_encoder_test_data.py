@@ -91,7 +91,7 @@ def train_model(**kwargs):
   hi = hi.to(device)
 
   if log_to_wandb_name is not None:
-    run = wandb.init(project="iclr24-project", entity="XXXXXXXXXX", config=config, reinit=True, group=log_to_wandb_name)
+    run = wandb.init(project="iclr24-project", entity="teamtravers", config=config, reinit=True, group=log_to_wandb_name)
 
   ### Test Data Section
   ## Load the test data 

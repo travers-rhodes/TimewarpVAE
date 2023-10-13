@@ -75,13 +75,15 @@ def make_recon_actual(device, length, batch_size):
 
   return (recon,actual)
 
-def simple_apply_and_check(function_name, recon, actual):
+def simple_apply_and_check(function_name, recon, actual, device="cpu"):
   #if recon.grad is not None:
   #  recon.grad.zero_();
-  torch.cuda.synchronize();
+  if device != "cpu":
+    torch.cuda.synchronize();
   start = time.time()
   loss = function_name(recon, actual)
-  torch.cuda.synchronize();
+  if device != "cpu":
+    torch.cuda.synchronize();
   end = time.time()
   return (end-start)
 

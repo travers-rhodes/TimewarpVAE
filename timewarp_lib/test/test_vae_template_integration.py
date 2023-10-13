@@ -33,6 +33,7 @@ def train_and_save(num_trajs):
   data_scaled = data_centered * data_scaling
   np.savez(DATAFILE, 
          train=data_scaled,
+         test=data_scaled,
          pose_scaling = data_scaling,
          pose_mean = data_mean)
 
@@ -109,6 +110,13 @@ def train_and_save(num_trajs):
      logname = log_dir,
      batch_size=64,
      curv_loss_penalty_weight=0,
+     learn_decoder_variance=False,
+     training_data_added_timing_noise=0.0,
+     noise_lr=0.0,
+     noise_eps=0.0,
+     decoding_l2_weight_decay=0.0,
+     decoding_spatial_derivative_regularization=0.0,
+     step_each_batch=True,
      )
 
   loaded_model = lm.LoadedModel(MODELSAVEDIR)

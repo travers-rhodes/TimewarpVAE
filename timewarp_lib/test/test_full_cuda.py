@@ -3,10 +3,14 @@ import torch.nn
 import numpy as np
 import pytest
 
+TEST_CUDA=torch.cuda.is_available()
+
 #import numpy_dtw as ndtw
 import cpp_dtw as cdtw
-import cpp_dtw_cuda as cdtwcuda
-import cpp_dtw_cuda_split as cdtwcudasplit
+
+if TEST_CUDA:
+  import cpp_dtw_cuda as cdtwcuda
+  import cpp_dtw_cuda_split as cdtwcudasplit
 
 ###
 ### API
@@ -181,6 +185,8 @@ def big_warp_and_check(function_name,device="cpu"):
   np.testing.assert_almost_equal(np_recon_grad, expected_grad)
 
 def simple_cuda_test(function_name):
+  if not TEST_CUDA:
+    return
   np_actual = np.array(((1,1,4,3,2)), dtype=float).reshape(1,-1,1)
   np_recon = np.array(((1,2,3,2,2,2)), dtype=float).reshape(1,-1,1) 
   batch_size = np_recon.shape[0]
@@ -224,6 +230,8 @@ def test_cpp_dtw_actual_weighting():
   run_all_tests(cdtw.dtw_loss)
 
 def test_cpp_dtw_actual_weighting_cuda():
+  if not TEST_CUDA:
+    return
   simple_cuda_test(cdtwcuda.dtw_loss)
   simple_cuda_test(cdtwcudasplit.dtw_loss)
   run_all_tests(cdtwcuda.dtw_loss,"cuda")

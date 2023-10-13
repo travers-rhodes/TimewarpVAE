@@ -78,17 +78,19 @@ def make_recon_actual(device, big_length, small_length, batch_size):
 
   return (recon,actual)
 
-def simple_apply_and_check(function_name, recon, actual, reg=False):
+def simple_apply_and_check(function_name, recon, actual, device, reg=False):
   #if recon.grad is not None:
   #  recon.grad.zero_();
-  torch.cuda.synchronize();
+  if device != "cpu":
+    torch.cuda.synchronize();
   start = time.time()
   if reg:
     regularization_lambda = float(0.0)
     loss = function_name(recon, actual, regularization_lambda)
   else:
     loss = function_name(recon, actual)
-  torch.cuda.synchronize();
+  if device != "cpu":
+    torch.cuda.synchronize();
   end = time.time()
   return (end-start)
 
@@ -109,7 +111,7 @@ def test_all_timings():
             #("cuda", caldtwcuda.dtw_loss, 5, True)
             ]:
           recon, actual = make_recon_actual(device, big_size, small_size, batch_size)
-          timing = simple_apply_and_check(func, recon, actual, reg=reg)
+          timing = simple_apply_and_check(func, recon, actual, device, reg=reg)
           timing_results.append((name, batch_size, big_size, small_size, timing))
           print(timing_results[-1])
       #np.save("timing_results.npy", np.array(timing_results))

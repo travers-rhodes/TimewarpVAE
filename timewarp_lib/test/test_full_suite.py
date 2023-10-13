@@ -3,6 +3,8 @@ import torch.nn
 import numpy as np
 import pytest
 
+TEST_CUDA=torch.cuda.is_available()
+
 #import numpy_dtw as ndtw
 import cpp_dtw as cdtw
 import param_cpp_dtw as pcdtw
@@ -184,6 +186,8 @@ def big_warp_and_check(function_name):
   np.testing.assert_almost_equal(np_recon_grad, expected_grad)
 
 def simple_cuda_test(function_name):
+  if not TEST_CUDA:
+    return
   np_actual = np.array(((1,1,4,3,2)), dtype=float).reshape(1,-1,1)
   np_recon = np.array(((1,2,3,2,2,2)), dtype=float).reshape(1,-1,1) 
   batch_size = np_recon.shape[0]
