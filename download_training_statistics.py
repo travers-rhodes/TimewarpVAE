@@ -3,8 +3,8 @@ import pandas as pd
 import wandb
 
 api = wandb.Api()
-entity, project = "XXXXXXXX", "iclr24-project"
-runs = api.runs(entity + "/" + project, {"group": "overnight"})#linearvae
+entity, project = "teamtravers", "iclr24-project"
+runs = api.runs(entity + "/" + project, {"group": "rescaled"})#linearvae
 
 summary_list, config_list, name_list = [], [], []
 for run in runs:

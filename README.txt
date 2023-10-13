@@ -6,7 +6,7 @@ conda activate timewarpvae
 pip install -r pip_requirements.txt
 ```
 
-In `timewarp_lib` directory, run the `./make.sh` command.
+In `timewarp_lib` directory, run the `./make.sh` command, or the `./make_nocuda.sh` if you do not have CUDA installed.
 
 In this directory, run `make` to download and process data
 
