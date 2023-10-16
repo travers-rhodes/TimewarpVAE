@@ -21,7 +21,4 @@ train_model_notw_DTW.py
 created pca model on timing-augmented data using
 train_pca_model.py
 applied it using
-
-Also ran a single model from
-./train_model_notw_trans.py
-before cancelling because it took 4.6 hours and was slowing down other runs.
+`paper_calculations/PCA Model Applier.ipynb`
