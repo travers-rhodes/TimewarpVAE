@@ -6,3 +6,4 @@ wandb
 compile_commands.json
 .ipynb_checkpoints
 paper_calculations/dmpmodels
+paper_images/*.nbconvert.ipynb
