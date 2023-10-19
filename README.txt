@@ -6,6 +6,9 @@ conda activate timewarpvae
 pip install -r pip_requirements.txt
 ```
 
+Note that the pip_requirements.txt file was created by running `python -m pip list --format freeze > pip_requirements.txt` (and then removing 
+the line about the locally-installed custom-dtw package from timewarp_lib).
+
 In `timewarp_lib` directory, run the `./make.sh` command, or the `./make_nocuda.sh` if you do not have CUDA installed.
 
 In this directory, run `make` to download and process data
