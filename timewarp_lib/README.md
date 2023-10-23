@@ -50,6 +50,7 @@ logvar: an associated logvar for noise associated with the embedding also in the
 ```
 ### Options:
 * OneDConvEncoder (1D convolutions followed by fully-connected layers. Does not use `scaled_ts` parameter)
+* SelfAttentionTransformerEncoder (Self-attention based architecture. Can optionally use `scaled_ts` parameter)
 * TransformerEncoder (Attention-based architecture. Can optionally use `scaled_ts` parameter)
 
 ## `decoders.py`
@@ -73,7 +74,9 @@ trajectory: (batch_size, traj_len, traj_channels)
 ```
 
 ### Options:
-* FunctionStyleDecoder: (fully connected layers which repeatedly take in timestep and latent value and output pose for each timesteps)
+* ComplicatedFunctionStyleDecoder: (Two modules of fully connected layers, one which just takes in timestep (generating a vector) and one which just takes in latent value (generating a matrix). The results of these are then multiplied together using matrix multiplication to give the output pose for that timestep for that latent value. This is repeated for all the different timesteps to generate the full trajectory)
+* FunctionStyleDecoder: (fully connected layers which repeatedly takes in the timestep concatenated with the latent value and outputs pose for each timesteps)
+* OneDConvDecoderUpsampling: (fully connected followed by nn.Conv1d layers without striding. Instead of striding, before each convolution we (can) repeat elements to increase the length of the trajectory, using the `dec_gen_upsampling_factors` parameter.  Does not use `ts` parameter)
 * OneDConvDecoder: (fully connected followed by nn.ConvTranspose1d layers (upconvolution). Does not use `ts` parameter)
 
 ## `vector_timewarpers.py`
@@ -85,7 +88,8 @@ Application Function:
 ```
 def timewarp_first_to_second(self, first_trajectory, second_trajectory):
 ```
-Create a new trajectory whose poses are computed from the `first_trajectory`, but the timing at which those poses are reached are chosen to make the resulting trajectory similar to `second_trajectory`.
+Create a new trajectory whose poses are computed from the `first_trajectory`, but the timing at which those poses are reached are chosen to make the resulting trajectory similar to `second_trajectory`. Average poses if multiple poses in `first_trajectory` correspond to the same pose in `second_trajectory`.
+
 Input dimensions:
 ```
 first_trajectory: (batch_size, traj_len_first, traj_channels)
@@ -95,9 +99,35 @@ Output:
 ```
 trajectory: (batch_size, traj_len_second, traj_channels)
 ```
-Options:
+#### timewarp_first_and_second
+```
+def timewarp_first_and_second(self, first_trajectory, second_trajectory):
+```
+Create two new trajectories, one whose poses are computed from the `first_trajectory`, 
+and one whose poses are computed from the `second_trajectory`.
+The timing of both trajectories are chosen by repeating different timesteps in the trajectories so that matching timesteps have similar poses.
+The poses within both output trajectories are scaled by dividing by the number times the
+same timestamp of `second_trajectory` was repeated. Equivalently, that is the number of different
+timesteps in `first_trajectory` that are matched to this timestamp in the `second_trajectory`.
+By scaling in this way, the mean squared error of the two output trajectories 
+is equal to the following calculation:
+Match each pose in `second_trajectory` to all its associated poses in `first_trajectory`.
+For each pose in `second_trajectory`, compute the mean square difference between it and its matched poses in the `first_trajectory`.
+Finally, average over all those errors (one for each timestamp in `second_trajectory`).
+
+Input dimensions:
+```
+first_trajectory: (batch_size, traj_len_first, traj_channels)
+second_trajectory: (batch_size, traj_len_second, traj_channels)
+```
+Output:
+```
+warped_first_trajectory: (batch_size, extended_traj_len, traj_channels)
+warped_second_trajectory: (batch_size, extended_traj_len, traj_channels)
+```
+### Options:
 * IdentityVectorTimewarper: Truncate or repeat last element of first trajectory to match second trajectory (if same lengths, do nothing)
-* DTWVectorTimewarper: Use standard tabular DTW algorithm to match timesteps between trajectories. Return average of poses in first that match each second timestep.
+* DTWVectorTimewarper: Use standard tabular DTW algorithm to match timesteps between trajectories. 
 
 ## `vae_template.py`
 Template file to combine a scalar_timewarper, encoder, and decoder to create a Variational Auto-Encoder model.
