@@ -51,14 +51,26 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
 import base_configs as bc
 
 for _ in range(5):
-  for beta in [0.0005]:#[0.001, 0.01, 0.1]:
+  for use_dtw in [True]:
+    for beta in [0.001]:#, 0.01, 0.1, 0.0005]:
       for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
-         for training_data_added_timing_noise in [0.1,0]:
+        for training_data_added_timing_noise in [0.1]:#,0]:
            if beta != 0.001 and training_data_added_timing_noise == 0:
              continue
-           for dec_side_hiddens in [[200],[]]: 
-             if beta != 0.001 and len(dec_side_hiddens)==0:
-               continue
-             paramdict = bc.func_side_tw
-             paramdict["dec_complicated_function_hidden_dims"] = dec_side_hiddens
-             train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise)
+           for paramdict in [bc.func_side_no_tw]:
+             for dec_side_hiddens in [[200]]: 
+               if beta != 0.001 and len(dec_side_hiddens)==0:
+                 continue
+               if dec_side_hiddens != [200] and paramdict["decoder_name"] != "functional_decoder_complicated":
+                 continue
+               if paramdict["decoder_name"] == "functional_decoder_complicated":
+                 paramdict["dec_complicated_function_hidden_dims"] = dec_side_hiddens
+               if use_dtw:
+                 if dec_side_hiddens != [200]:
+                   continue
+                 if beta != 0.001:
+                   continue
+                 ##OVERWRITE and do DTW for loss
+                 paramdict["vector_timewarper_name"]="dtw_vector_timewarper"
+                 paramdict["vector_timewarper_warps_recon_and_actual"]=True
+               train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise)
