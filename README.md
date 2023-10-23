@@ -1,4 +1,10 @@
-## Setup
+
+
+# TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories
+
+This repository is the official implementation of [TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories](). 
+
+## Requirements and Setup
 Install needed packages using something like
 ```
 conda create --name timewarpvae --file conda_requirements.txt
@@ -13,7 +19,8 @@ In `timewarp_lib` directory, run the `./make.sh` command, or the `./make_nocuda.
 
 In this directory, run `make` to download and preprocess data
 
-## Train Models 
+
+## Train and Evaluate Models 
 For the experiments in our paper, we ran
 train_fork_model.py  
 train_fork_conv.py   
@@ -32,9 +39,13 @@ applied it using
 created and applied the Parametric DMP model using
 'paper_calculations/dynamic_movement_primitive simple.ipynb'
 
-## Generate Figures
-1) run download_training_statistics.py to copy summary results from wandb
-2) run Ablations.ipynb, and copy the exemplar model timestamps to copy_models.sh and to paper_images/InterpolateTwoAs-NNModel.ipynb
-3) run copy_models.sh (only necessary if you ran the models on a different machine and have access to it through ssh. you'll need to update the machine name)
-4) run create_figures.sh
+## Pre-trained Models
 
+You can download pretrained models here for both the fork dataset and the letter A dataset: https://cornell.box.com/v/TimewarpVAEReplicationData
+
+
+## Generate Figures
+1) Run `download_training_statistics.py` and `download_fork_training_statistics.py` to copy summary results from wandb and store them in `project.csv` and `fork_project.csv`
+2) Run Ablations.ipynb, and copy the exemplar model timestamps to `copy_models.sh` and to `paper_images/InterpolateTwoAs-NNModel.ipynb`
+3) Run `copy_models.sh` (only necessary if you ran the models on a different machine and have access to it through ssh. you'll need to update the machine name)
+4) Run `create_figures.sh`
