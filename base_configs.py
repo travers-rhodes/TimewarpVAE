@@ -34,7 +34,31 @@ convup_no_dtw = dict(
      #####VectorTimewarping#####
      ###########################
      ###IdentityTimewarper### 
-     vector_timewarper_name="identity_vector_timewarper"
+     vector_timewarper_name="identity_vector_timewarper",
+     ####
+     #### misc
+     ####
+     step_each_batch = True,
+     learn_decoder_variance = False,
+     dec_initial_log_noise_estimate = np.log(0.1**2).item(),
+     pre_time_learning_epochs = 0,
+     scalar_timewarping_lr = 0.0,
+     scalar_timewarping_eps = 0.000001,
+     scalar_timewarper_timereg = 0.0,
+     scalar_timewarper_endpointreg = 0.0,
+     scaltw_min_canonical_time = 0.0,
+     scaltw_max_canonical_time = 1.0,
+     dec_use_softplus=False,
+     dec_use_elu=True,
+     decoding_l2_weight_decay=0.0,
+     decoding_spatial_derivative_regularization=0.0,
+     dec_spatial_regularization_factor=1.0,
+     decoding_lr = 0.0001,
+     encoding_lr = 0.0001,
+     decoding_eps = 0.0001,
+     encoding_eps = 0.0001,
+     useAdam = True,
+     curv_loss_penalty_weight = 0.0,
      )
 
 conv_no_dtw = dict(

@@ -51,13 +51,13 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
 import base_configs as bc
 
 for _ in range(5):
-  for use_dtw in [False, True]:
-    for beta in [0.001, 0.01, 0.1]:
+  for use_dtw in [True, False]:
+    for beta in [0.001, 0.01, 0.1, 0.0005]:
       for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
          for training_data_added_timing_noise in [0.1,0]:
            if beta != 0.001 and training_data_added_timing_noise == 0:
              continue
-           for paramdict in [bc.func_side_no_tw, bc.conv_no_dtw]:
+           for paramdict in [bc.convup_no_dtw, bc.func_side_no_tw]:
              for dec_side_hiddens in [[200],[]]: 
                if beta != 0.001 and len(dec_side_hiddens)==0:
                  continue
