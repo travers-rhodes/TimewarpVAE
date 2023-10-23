@@ -35,6 +35,6 @@ created and applied the Parametric DMP model using
 ## Generate Figures
 1) run download_training_statistics.py to copy summary results from wandb
 2) run Ablations.ipynb, and copy the exemplar model timestamps to copy_models.sh and to paper_images/InterpolateTwoAs-NNModel.ipynb
-3) run copy_models.sh
+3) run copy_models.sh (only necessary if you ran the models on a different machine and have access to it through ssh. you'll need to update the machine name)
 4) run create_figures.sh
 
