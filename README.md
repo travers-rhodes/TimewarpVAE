@@ -2,7 +2,7 @@
 
 # TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories
 
-This repository is the official implementation of [TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories](). 
+This repository is the official implementation of [TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories](https://arxiv.org/abs/2310.16027). 
 
 ## Requirements and Setup
 Install needed packages using something like
