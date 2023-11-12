@@ -58,8 +58,10 @@ class SelfAttentionTransformerEncoder(nn.Module):
           self.nonlinearity = nn.Softplus()
         elif emb_nonlinearity == "ELU": 
           self.nonlinearity = nn.ELU()
+        elif emb_nonlinearity == "Tanh": 
+          self.nonlinearity = nn.Tanh()
         else:
-          raise Exception(f"Unknown nonlinearity of '{self.nonlinearity}'")
+          raise Exception(f"Unknown nonlinearity of '{emb_nonlinearity}'")
         
         # input dim is the number of channels (plus the concatenated time dimension if we're appending time)
         input_dim = self.traj_channels
@@ -314,6 +316,8 @@ class OneDConvEncoder(nn.Module):
             emb_conv_layers_strides = [],
             emb_conv_layers_kernel_sizes = [],
             emb_fc_layers_num_features = [],
+            emb_activate_last_layer = False,
+            emb_conv1d_padding = 0,
             dtype=torch.float,
             **kwargs):
         super(OneDConvEncoder, self).__init__()
@@ -325,6 +329,7 @@ class OneDConvEncoder(nn.Module):
         self.emb_conv_layers_kernel_sizes = emb_conv_layers_kernel_sizes
         self.emb_fc_layers_num_features = emb_fc_layers_num_features
         self.emb_dropout_probability = np.array(emb_dropout_probability).item()
+        self.emb_activate_last_layer = emb_activate_last_layer
 
         prev_channels = traj_channels
         traj_len = self.traj_len
@@ -337,9 +342,13 @@ class OneDConvEncoder(nn.Module):
                               layer_channels,
                               self.emb_conv_layers_kernel_sizes[i],
                               self.emb_conv_layers_strides[i],
+                              padding = emb_conv1d_padding,
                               dtype=dtype
                               ))
-            traj_len = int(math.floor(
+            if emb_conv1d_padding == "same":
+              traj_len = traj_len
+            else: 
+              traj_len = int(math.floor(
                 (traj_len - (self.emb_conv_layers_kernel_sizes[i]- 1) - 1)/
                   self.emb_conv_layers_strides[i] 
                 + 1))
@@ -367,8 +376,10 @@ class OneDConvEncoder(nn.Module):
           self.nonlinearity = nn.Softplus()
         elif emb_nonlinearity == "ELU": 
           self.nonlinearity = nn.ELU()
+        elif emb_nonlinearity == "Tanh": 
+          self.nonlinearity = nn.Tanh()
         else:
-          raise Exception(f"Unknown nonlinearity of '{self.nonlinearity}'")
+          raise Exception(f"Unknown nonlinearity of '{emb_nonlinearity}'")
 
 
         self.emb_convs = nn.ModuleList(self.emb_convs)
@@ -404,8 +415,12 @@ class OneDConvEncoder(nn.Module):
         # flatten all but the 0th dimension
         layer = torch.flatten(layer, 1)
         for fc in self.emb_fcs:
-            layer = F.relu(fc(layer))
+            layer = self.nonlinearity(fc(layer))
 
         mu = self.fcmu(layer)
         logvar = self.fclogvar(layer)
+
+        if self.emb_activate_last_layer:
+          mu = self.nonlinearity(mu)
+          logvar = self.nonlinearity(logvar)
         return(mu,logvar)

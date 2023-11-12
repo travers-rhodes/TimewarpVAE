@@ -14,6 +14,7 @@ class ComplicatedFunctionStyleDecoder(nn.Module):
         dec_template_motion_hidden_layers=[1000],
         dec_use_softplus = False,
         dec_use_elu = False,
+        dec_use_tanh = False,
         dec_template_use_custom_initialization = False,
         # grad_t is the constant, relatively large, abs value of default slope of first 
         # linear layer in the $t$ direction
@@ -54,7 +55,9 @@ class ComplicatedFunctionStyleDecoder(nn.Module):
                   custom_initialization_t_intercept_padding=dec_template_custom_initialization_t_intercept_padding,
                   dtype=dtype)
   
-       self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (torch.nn.ELU() if dec_use_elu else torch.nn.ReLU())
+       self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (
+           torch.nn.ELU() if dec_use_elu else (
+             (torch.nn.Tanh() if dec_use_tanh else torch.nn.ReLU())))
         
        previous_layer_width = latent_dim
        self.all_side_layers = []
@@ -241,12 +244,12 @@ class OneDConvDecoder(nn.Module):
             # match tensorflow's padding="SAME"
             smaller_crop = math.floor((pytorch_traj_len - desired_traj_len)/2)
             larger_crop = pytorch_traj_len - desired_traj_len - smaller_crop
-            if smaller_crop + larger_crop > 0:
+            if smaller_crop + larger_crop > 0 and not dec_conv1d_padding == "same":
                 self.gen_conv_crops.append(
                       torch.nn.ConstantPad1d((-smaller_crop, -larger_crop),0))
             else:
                 self.gen_conv_crops.append(None)
-            traj_len = desired_traj_len
+            traj_len = desired_traj_len if not dec_conv1d_padding == "same" else traj_len
             prev_channels = layer_channels
 
         self.gen_fcs = nn.ModuleList(self.gen_fcs)
@@ -311,7 +314,8 @@ class OneDConvDecoderUpsampling(nn.Module):
             dec_gen_upsampling_factors = [2,2,1],
             dec_gen_conv_layers_kernel_sizes = [5,5,5],
             dec_use_softplus = False,
-            dec_conv_use_elu = False,
+            dec_use_elu = False,
+            dec_use_tanh = False,
             dtype=torch.float,
             dec_initial_log_noise_estimate = None,
             **kwargs):
@@ -353,7 +357,9 @@ class OneDConvDecoderUpsampling(nn.Module):
         self.gen_fcs = nn.ModuleList(self.gen_fcs)
         self.gen_convs = nn.ModuleList(self.gen_convs)
 
-        self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (torch.nn.ELU() if dec_conv_use_elu else torch.nn.ReLU())
+        self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (
+           torch.nn.ELU() if dec_use_elu else (
+             (torch.nn.Tanh() if dec_use_tanh else torch.nn.ReLU())))
 
     def get_mean_square_layer_weights(self):
         sum_weights = 0
