@@ -329,7 +329,8 @@ class OneDConvEncoder(nn.Module):
         self.emb_conv_layers_kernel_sizes = emb_conv_layers_kernel_sizes
         self.emb_fc_layers_num_features = emb_fc_layers_num_features
         self.emb_dropout_probability = np.array(emb_dropout_probability).item()
-        self.emb_activate_last_layer = emb_activate_last_layer
+        self.emb_conv1d_padding = np.array(emb_conv1d_padding).item()
+        self.emb_activate_last_layer = np.array(emb_activate_last_layer).item()
 
         prev_channels = traj_channels
         traj_len = self.traj_len
@@ -342,10 +343,10 @@ class OneDConvEncoder(nn.Module):
                               layer_channels,
                               self.emb_conv_layers_kernel_sizes[i],
                               self.emb_conv_layers_strides[i],
-                              padding = emb_conv1d_padding,
+                              padding = self.emb_conv1d_padding,
                               dtype=dtype
                               ))
-            if emb_conv1d_padding == "same":
+            if self.emb_conv1d_padding == "same":
               traj_len = traj_len
             else: 
               traj_len = int(math.floor(
@@ -370,6 +371,7 @@ class OneDConvEncoder(nn.Module):
 
         self.dropout = nn.Dropout(self.emb_dropout_probability)
 
+        emb_nonlinearity = np.array(emb_nonlinearity).item()
         if emb_nonlinearity == "ReLU":
           self.nonlinearity = nn.ReLU()
         elif emb_nonlinearity == "Softplus":  

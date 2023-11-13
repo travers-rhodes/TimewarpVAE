@@ -10,6 +10,7 @@ import wandb
 
 import timewarp_lib.train_utils as tu
 import timewarp_lib.parse_model_parameters as pmp
+import timewarp_lib.scalar_timewarpers as st
 
 import timewarp_lib.vector_timewarpers as vtw
 
@@ -264,10 +265,15 @@ def train_model(**kwargs):
       **kwargs
      )
 
+  print(hi.decoder)
+
   encoder_state_dict = hi.encoder.state_dict()
   torch.save(encoder_state_dict, f"{model_save_dir}/encoder_model.pt")
   decoder_state_dict = hi.decoder.state_dict()
   torch.save(decoder_state_dict, f"{model_save_dir}/decoder_model.pt")
+  # save a dummy so we can easily use same load_model code
+  scalar_timewarper_state_dict = st.IdentityScalarTimewarper().state_dict()
+  torch.save(scalar_timewarper_state_dict, f"{model_save_dir}/scalar_timewarper_model.pt")
   vector_timewarper_state_dict = vector_timewarper.state_dict()
   torch.save(vector_timewarper_state_dict, f"{model_save_dir}/vector_timewarper_model.pt")
   if log_to_wandb_name is not None:

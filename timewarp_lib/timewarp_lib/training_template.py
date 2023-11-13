@@ -107,6 +107,8 @@ def train_model(**kwargs):
                              if "curv_loss_divide_by_zero_epsilon" in kwargs else None)
   batch_size = kwargs["batch_size"]
 
+  use_rate_invariant_vae = kwargs.get("use_rate_invariant_vae",False)
+
   ## model_save_dir should NOT already exist
   os.makedirs(model_save_dir)
 
@@ -183,7 +185,12 @@ def train_model(**kwargs):
           recon_loss += batch_recon_loss 
 
         batch_recon_loss = batch_recon_loss / torch.exp(hi.decoder.log_decoder_variance)
-        batch_kld_loss = tu.kl_loss_term(meanemb, logvaremb)*len(training_ts_for_mu)
+        if use_rate_invariant_vae:
+          # if we're doing rate_invariant_vae just kl term on the spatial component
+          # which is the last latent_dim elements
+          batch_kld_loss = tu.kl_loss_term(meanemb[:,-latent_dim:], logvaremb[:,-latent_dim:])*len(training_ts_for_mu)
+        else:
+          batch_kld_loss = tu.kl_loss_term(meanemb, logvaremb)*len(training_ts_for_mu)
         kld_loss += batch_kld_loss
        
         if device == "cuda":

@@ -4,6 +4,7 @@ import math
 import numpy as np
 
 import timewarp_lib.utils.function_style_template_motion as tm
+import timewarp_lib.parameterized_vector_time_warper as pvtw
 # This learns a function that takes in as input a time and returns the pose at that time.
 # This is different from a ConvStyleDecoder which returns several poses at fixed timesteps.
 class ComplicatedFunctionStyleDecoder(nn.Module):
@@ -50,6 +51,7 @@ class ComplicatedFunctionStyleDecoder(nn.Module):
                   layer_widths= template_motion_hidden_layers + [dec_complicated_function_latent_size],
                   use_softplus = dec_use_softplus,
                   use_elu = dec_use_elu,
+                  use_tanh = dec_use_tanh,
                   use_custom_initialization=dec_template_use_custom_initialization,
                   custom_initialization_grad_t=dec_template_custom_initialization_grad_t,
                   custom_initialization_t_intercept_padding=dec_template_custom_initialization_t_intercept_padding,
@@ -244,12 +246,12 @@ class OneDConvDecoder(nn.Module):
             # match tensorflow's padding="SAME"
             smaller_crop = math.floor((pytorch_traj_len - desired_traj_len)/2)
             larger_crop = pytorch_traj_len - desired_traj_len - smaller_crop
-            if smaller_crop + larger_crop > 0 and not dec_conv1d_padding == "same":
+            if smaller_crop + larger_crop > 0:
                 self.gen_conv_crops.append(
                       torch.nn.ConstantPad1d((-smaller_crop, -larger_crop),0))
             else:
                 self.gen_conv_crops.append(None)
-            traj_len = desired_traj_len if not dec_conv1d_padding == "same" else traj_len
+            traj_len = desired_traj_len
             prev_channels = layer_channels
 
         self.gen_fcs = nn.ModuleList(self.gen_fcs)
@@ -403,3 +405,27 @@ class OneDConvDecoderUpsampling(nn.Module):
       # but all the rest of our code wants those last two switched.
       # so, switch them! 
       return(layer.transpose(1,2)), zs
+
+# for this API, for simplicity, latent_dim needs to be 
+class RateInvariantDecoder(OneDConvDecoderUpsampling):
+  def __init__(self, ria_T, **kwargs):
+    super(RateInvariantDecoder, self).__init__(**kwargs)
+    # the first T latent dimensions are actually the timewarping dims
+    self.T = ria_T
+
+  #overwrite this method to differently use the first self.T and last latent_dim variables
+  def decode_and_return_noisy_embedding_node(self, mu, ts):
+      # latents are last indices
+      z = mu[:, self.T:]
+
+      # mu is of shape (batch_size, T+d), so we break it apart into two separate tensors
+      # the first, v is the timing parameters
+      v = mu[:, :self.T]
+      # the timing parameters are converted to gamma parameters by squaring and dividing by the sum of the squares
+      gamma = v**2 / torch.sum(v**2, dim=1, keepdim=True)
+      x, _ = super().decode_and_return_noisy_embedding_node(z, None)
+
+      recon = pvtw.warp(x, gamma)
+      return recon, z
+
+

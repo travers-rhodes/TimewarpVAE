@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import timewarp_lib.scalar_timewarpers as st
 import timewarp_lib.parameterized_vector_time_warper as pvtw
 
 # Reimplementation of the RateInvariantAutoencoder from
@@ -16,8 +17,9 @@ class RateInvariantAutoencoder(nn.Module):
         # The following parameters are all learnable modules
         self.encoder = encoder
         self.decoder = decoder
+        # so that we can easily use loader code, we make a dummy scalar_timewarper here
+        self.scalar_timewarper = st.IdentityScalarTimewarper()
         self.T = ria_T
-        print("This is a tuple?",self.T)
         self.d = latent_dim
 
   def noiseless_forward(self, xs):
@@ -26,7 +28,6 @@ class RateInvariantAutoencoder(nn.Module):
       # for consistency with other api's we pass timestamps of None (unused)
       # ignore the "logvar" output of the encoder (rather than refactoring all our encoders to not return a logvar, just ignore it)
       mu, _ = self.encoder.encode(xs,None)
-      print("mu.shape is ", mu.shape)
       # mu is of shape (batch_size, T+d), so we break it apart into two separate tensors
       # the first, v is the timing parameters
       v = mu[:, :self.T]

@@ -1,6 +1,7 @@
 import torch
 import unittest
 import timewarp_lib.autoencoder_training_template as att
+import timewarp_lib.load_model as lm
 import time
 import shutil
 import os
@@ -110,6 +111,8 @@ class TestRIALearner(unittest.TestCase):
      vector_timewarper_name="identity_vector_timewarper",
      )
     att.train_model(**args)
+
+    _ = lm.LoadedModel(saved_model_dir=MODELSAVEDIR)
      
 
 if __name__ == '__main__':

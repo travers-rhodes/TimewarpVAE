@@ -26,7 +26,7 @@ def warp(x,gammadot):
   assert tlen == T + 1, f"traj_len should be one more than T, but the sizes were tlen:{tlen} and T:{T}"
 
   # gamma are the desired time sampling for each of the T+1 datapoints
-  gamma = torch.zeros((bsize, T+1), dtype=torch.float)
+  gamma = torch.zeros((bsize, T+1), dtype=torch.float).to(device=x.device)
   gamma[:,1:] = torch.cumsum(gammadot, dim=1) * T
   # left samples are the samples at the left edge of each interval
   # they will be indexed by l_ind

@@ -5,7 +5,7 @@ import numpy as np
 TESTING=True
 
 class TemplateMotionGeneration(nn.Module):
-    def __init__(self, input_dim, passthrough_dim, layer_widths, dtype, use_softplus=False, use_elu=False,
+    def __init__(self, input_dim, passthrough_dim, layer_widths, dtype, use_softplus=False, use_elu=False, use_tanh = False,
                  use_custom_initialization = False,
                  # grad_t is the constant, relatively large, abs value of default slope of first 
                  # linear layer in the $t$ direction
@@ -19,7 +19,7 @@ class TemplateMotionGeneration(nn.Module):
         self.layer_widths = layer_widths
         self.dtype = dtype
 
-        self.nonlinearity = torch.nn.Softplus() if use_softplus else torch.nn.ELU() if use_elu else torch.nn.ReLU()
+        self.nonlinearity = torch.nn.Softplus() if use_softplus else torch.nn.ELU() if use_elu else torch.nn.Tanh() if use_tanh else torch.nn.ReLU()
 
         # initial input has dimension input_dim + passthrough_dim 
         previous_layer_width = self.input_dim + self.passthrough_dim

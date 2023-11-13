@@ -29,7 +29,10 @@ class ModeledParameterScalarTimewarper(nn.Module):
             scaltw_emb_conv_layers_channels = [],
             scaltw_emb_conv_layers_strides = [],
             scaltw_emb_conv_layers_kernel_sizes = [],
+            scaltw_emb_conv_padding = 0,
+            scaltw_emb_nonlinearity= "ReLU",
             scaltw_emb_fc_layers_num_features = [],
+            scaltw_emb_activate_last_layer = False,
             scaltw_min_canonical_time = 0.,
             scaltw_max_canonical_time = 1.,
             dtype=torch.float,
@@ -45,7 +48,10 @@ class ModeledParameterScalarTimewarper(nn.Module):
           emb_conv_layers_channels = scaltw_emb_conv_layers_channels,
           emb_conv_layers_strides = scaltw_emb_conv_layers_strides,
           emb_conv_layers_kernel_sizes = scaltw_emb_conv_layers_kernel_sizes,
-          emb_fc_layers_num_features = scaltw_emb_fc_layers_num_features)
+          emb_conv1d_padding = scaltw_emb_conv_padding,
+          emb_fc_layers_num_features = scaltw_emb_fc_layers_num_features,
+          emb_nonlinearity = scaltw_emb_nonlinearity,
+          emb_activate_last_layer=scaltw_emb_activate_last_layer)
 
         # The easiest way to make the timewarping function be a bijection on [minT,maxT]
         # is to use LogSoftmax
