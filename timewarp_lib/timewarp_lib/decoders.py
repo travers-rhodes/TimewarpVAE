@@ -150,19 +150,27 @@ class FunctionStyleDecoder(nn.Module):
   
        # an idempotent operation to convert the (possibly) numpy scalar or scalar to a scalar
        self.dec_spatial_regularization_factor = np.array(dec_spatial_regularization_factor).item()
+       self.latent_dim = np.array(latent_dim).item()
 
     def get_mean_square_layer_weights(self):
       return self.motion_model.mean_square_layer_weights()
 
     # given a batch of zs of shape (batchsize, latent_dim)
-    def decode_and_return_noisy_embedding_node(self, zs, ts):
+    def decode_and_return_noisy_embedding_node(self, in_zs, ts):
       assert len(ts.shape)==3  and ts.shape[2] == 1, "we're assuming you're passing in a single set of ts with shape (batchsize, timevalues, timechannel=1)"
-      assert zs.shape[0] == ts.shape[0], "we're assuming you're passing in zs and ts of the same shape"
+      assert in_zs.shape[0] == ts.shape[0], "we're assuming you're passing in zs and ts of the same shape"
 
       batchsize = ts.shape[0]
       timesteps = ts.shape[1]
-      latent_dim = zs.shape[1]
-      broadcast_zs = zs.reshape((batchsize,1,latent_dim)).expand((batchsize,timesteps,latent_dim))
+      latent_dim = self.latent_dim
+      # here, we add logic which is trivial/do nothing if
+      # we're taking in a latent dim of the expected size.
+      # However, if we're taking in a rate_invariant latent dim,
+      # then we just want to take the last latent_dim values to decode
+      # (this is only used if we're training a conv decoder on a rate_invariant
+      # model). Not sure why we would ever do that.... but shh.
+      layer = in_zs[:,-latent_dim:]
+      broadcast_zs = layer.reshape((batchsize,1,latent_dim)).expand((batchsize,timesteps,latent_dim))
       broadcast_zs = broadcast_zs.reshape((batchsize*timesteps,latent_dim))
       # Dividing by the spatial regularization factor has the effect of
       # (by default, in order for training to have the model return the same pattern) 
@@ -362,6 +370,7 @@ class OneDConvDecoderUpsampling(nn.Module):
         self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (
            torch.nn.ELU() if dec_use_elu else (
              (torch.nn.Tanh() if dec_use_tanh else torch.nn.ReLU())))
+        self.latent_dim = latent_dim
 
     def get_mean_square_layer_weights(self):
         sum_weights = 0
@@ -382,7 +391,13 @@ class OneDConvDecoderUpsampling(nn.Module):
     # given a batch of zs
     # you can completely ignore the ts
     def decode_and_return_noisy_embedding_node(self, zs, ts):
-      layer = zs
+      # here, we add logic which is trivial/do nothing if
+      # we're taking in a latent dim of the expected size.
+      # However, if we're taking in a rate_invariant latent dim,
+      # then we just want to take the last latent_dim values to decode
+      # (this is only used if we're training a conv decoder on a rate_invariant
+      # model). Not sure why we would ever do that.... but shh.
+      layer = zs[:,-self.latent_dim:]
       num_fcs = len(self.gen_fcs)
       num_convs = len(self.gen_convs)
       for i, fc in enumerate(self.gen_fcs):

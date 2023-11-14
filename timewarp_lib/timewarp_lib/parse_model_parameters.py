@@ -18,28 +18,7 @@ def parse_encoder(**kwargs):
     raise Exception(f"{requested} encoder is not known")
   return encoder
 
-
-## parse all the kwargs
-def parse_arguments(**kwargs):
-  use_rate_invariant_autoencoder = kwargs.get("use_rate_invariant_autoencoder",False)
-  use_rate_invariant_vae = kwargs.get("use_rate_invariant_vae",False)
-  if use_rate_invariant_autoencoder or use_rate_invariant_vae:
-    added_latent_dim_for_encoder = kwargs["ria_T"]
-    encoder_kwargs = copy.deepcopy(kwargs)
-    encoder_kwargs["latent_dim"] += added_latent_dim_for_encoder
-  else:
-    encoder_kwargs = kwargs
-
-  if kwargs["scalar_timewarper_name"] == "identity_scalar_timewarper":
-    scalar_timewarper = tim.IdentityScalarTimewarper(**kwargs)
-  elif kwargs["scalar_timewarper_name"] == "modeled_scalar_timewarper":
-    scalar_timewarper = tim.ModeledParameterScalarTimewarper(**kwargs)
-  else:
-    requested = kwargs["scalar_timewarper_name"]
-    raise Exception(f"{requested} scalar timewarper is not known")
-
-  encoder = parse_encoder(**encoder_kwargs)
-
+def parse_decoder(**kwargs):
   if kwargs["decoder_name"] == "functional_decoder":
     decoder = dt.FunctionStyleDecoder(**kwargs)
   elif kwargs["decoder_name"] == "convolutional_decoder":
@@ -53,7 +32,19 @@ def parse_arguments(**kwargs):
   else:
     requested = kwargs["decoder_name"]
     raise Exception(f"{requested} decoder is not known")
+  return decoder
 
+def parse_scalar_timewarper(**kwargs):
+  if kwargs["scalar_timewarper_name"] == "identity_scalar_timewarper":
+    scalar_timewarper = tim.IdentityScalarTimewarper(**kwargs)
+  elif kwargs["scalar_timewarper_name"] == "modeled_scalar_timewarper":
+    scalar_timewarper = tim.ModeledParameterScalarTimewarper(**kwargs)
+  else:
+    requested = kwargs["scalar_timewarper_name"]
+    raise Exception(f"{requested} scalar timewarper is not known")
+  return scalar_timewarper
+
+def parse_vector_timewarper(**kwargs):
   if kwargs["vector_timewarper_name"] == "dtw_vector_timewarper":
     vector_timewarper = vtw.DTWVectorTimewarper(**kwargs)
   elif kwargs["vector_timewarper_name"] == "linear_dtw_vector_timewarper":
@@ -63,6 +54,24 @@ def parse_arguments(**kwargs):
   else:
     requested = kwargs["vector_timewarper_name"]
     raise Exception(f"{requested} vector timewarper is not known")
+  return vector_timewarper
+
+
+## parse all the kwargs
+def parse_arguments(**kwargs):
+  use_rate_invariant_autoencoder = kwargs.get("use_rate_invariant_autoencoder",False)
+  use_rate_invariant_vae = kwargs.get("use_rate_invariant_vae",False)
+  if use_rate_invariant_autoencoder or use_rate_invariant_vae:
+    added_latent_dim_for_encoder = kwargs["ria_T"]
+    encoder_kwargs = copy.deepcopy(kwargs)
+    encoder_kwargs["latent_dim"] += added_latent_dim_for_encoder
+  else:
+    encoder_kwargs = kwargs
+
+  encoder = parse_encoder(**encoder_kwargs)
+  decoder = parse_decoder(**kwargs)
+  scalar_timewarper = parse_scalar_timewarper(**kwargs)
+  vector_timewarper = parse_vector_timewarper(**kwargs)
 
   if use_rate_invariant_autoencoder:
     hi = ria.RateInvariantAutoencoder(encoder=encoder,decoder=decoder, **kwargs)
