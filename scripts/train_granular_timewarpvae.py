@@ -9,7 +9,7 @@ import numpy as np
 
 import torch
 
-SCRATCHFOLDER="../results/rateinvariantvae"
+SCRATCHFOLDER="../results/testcurvvaelocal"
 #os.makedirs(SCRATCHFOLDER)
 
 warnings.filterwarnings("ignore","Initializing zero-element tensors is a no-op")
@@ -18,7 +18,7 @@ TRAJ_LEN=200
 NUM_CHANNELS = 2
 DATAFILE=f"../data/trainTest2DLetterARescaled.npz"
 
-NUM_EPOCHS = 20000
+NUM_EPOCHS = 2000
 
 def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise):
   # https://stackoverflow.com/questions/10607688/how-to-create-a-file-name-with-the-current-date-time-in-python
@@ -32,7 +32,7 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
      num_epochs = NUM_EPOCHS,
      latent_dim = latent_dim,
      ## Generic
-     device="cuda",
+     device="cpu",
      dtype = torch.float,
      traj_len = TRAJ_LEN,
      traj_channels = NUM_CHANNELS,
@@ -42,7 +42,7 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
      training_data_added_timing_noise = training_data_added_timing_noise,
      logname = log_dir,
      batch_size=64,
-     log_to_wandb_name = "rateinvariantvae",
+     log_to_wandb_name = "testcurvvaelocal",
      **paramdict
      )
 
@@ -51,7 +51,7 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
 import base_configs as bc
 
 for _ in range(5):
-  for beta in [0.001,0.01]:#[0.001, 0.01, 0.1]:
+  for beta in [0.001]:#[0.001, 0.01, 0.1]:
       for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
          for training_data_added_timing_noise in [0.1]:
            for dec_side_hiddens in [[200]]: 
@@ -74,4 +74,9 @@ for _ in range(5):
              paramdict["emb_activate_last_layer"] = False
              paramdict["emb_nonlinearity"] = "Tanh"
              paramdict["force_autoencoder"] = False
+             # OK, what if we add curvvae? can we fix generalization error?
+             paramdict["curv_loss_penalty_weight"] = 0.001
+             paramdict["curv_loss_epsilon_scale"] = 1.0
+             paramdict["curv_loss_num_new_sampling_points"] = 400 
+             paramdict["curv_loss_divide_by_zero_epsilon"] = 0.0001
              train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise)
