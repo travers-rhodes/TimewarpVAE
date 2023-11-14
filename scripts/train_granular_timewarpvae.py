@@ -51,14 +51,16 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
 import base_configs as bc
 
 for _ in range(5):
-  for beta in [0.001,0.01]:#[0.001, 0.01, 0.1]:
-      for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
+  for beta in [0.001]:#[0.001, 0.01, 0.1]:
+    for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
+      for hidden_layers in [[200],[100],[50]]: 
          for training_data_added_timing_noise in [0.1]:
            for dec_side_hiddens in [[200]]: 
              paramdict = bc.func_side_tw
              paramdict["dec_complicated_function_hidden_dims"] = dec_side_hiddens
              paramdict["dec_use_tanh"] = True
              paramdict["dec_use_elu"] = False 
+             paramdict["dec_template_motion_hidden_layers"]=hidden_layers
              paramdict["scaltw_granularity"] = 199
              paramdict["scaltw_emb_conv_layers_channels"] = [32,32,32]
              paramdict["scaltw_emb_conv_layers_strides"] = [1,1,1]
@@ -66,7 +68,7 @@ for _ in range(5):
              paramdict["scaltw_emb_nonlinearity"] = "Tanh"
              paramdict["scaltw_emb_conv_padding"] = "same"
              paramdict["scaltw_emb_activate_last_layer"] = True 
-             paramdict["scalar_timewarper_timereg"] = 0.005
+             paramdict["scalar_timewarper_timereg"] = 0.0
              paramdict["emb_conv_layers_channels"] = [32,32,32]
              paramdict["emb_conv_layers_strides"] = [1,1,1]
              paramdict["emb_conv_layers_kernel_sizes"] = [16,16,16]
