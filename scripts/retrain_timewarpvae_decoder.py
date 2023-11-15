@@ -25,7 +25,7 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
   log_dir = f"{SCRATCHFOLDER}/{timestr}/log"
 
   MODELSAVEDIR=f"{SCRATCHFOLDER}/{timestr}/savedmodel"
-  OLDMODELDIR=f"../results/rateinvariantvae/20231113-144159.904067/savedmodel"
+  OLDMODELDIR=f"../results/rateinvariantvae/20231113-232748.253853/savedmodel"
 
   tt.train_model(datafile = DATAFILE,
      old_saved_model_dir=OLDMODELDIR,
@@ -33,7 +33,7 @@ def train_and_save(latent_dim, beta, paramdict, training_data_added_timing_noise
      num_epochs = NUM_EPOCHS,
      latent_dim = latent_dim,
      ## Generic
-     device="cpu",
+     device="cuda",
      dtype = torch.float,
      traj_len = TRAJ_LEN,
      traj_channels = NUM_CHANNELS,

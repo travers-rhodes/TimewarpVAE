@@ -264,6 +264,18 @@ def train_model(old_saved_model_dir, **kwargs):
         if scalar_timewarping_lr > 0 and i >= pre_time_learning_epochs:
           time_optim.step()
         emb_optim.step()
+
+      all_embs_torch = torch.cat(all_embs).detach()
+      all_scaled_ts_torch = torch.cat(all_scaled_ts).detach()
+      previous_all_embs = all_embs_torch
+      previous_all_scaled_ts = all_scaled_ts_torch
+
+      if curv_loss_penalty_weight != 0:# or kwargs["decoder_name"] == "functional_decoder":
+        curv_loss = tu.curvature_loss_term(hi.decoder.decode, all_embs_torch, all_scaled_ts_torch, 
+                    curv_loss_num_new_sampling_points, curv_loss_epsilon_scale, curv_loss_divide_by_zero_epsilon)
+      else:
+        # fill with 0, just for logging
+        curv_loss = torch.tensor(0., dtype=dtype).to(device)
       recon_loss = recon_loss/(num_trajs * numts)
       kld_loss = kld_loss/num_trajs
       spatial_derivative_loss = spatial_derivative_loss/num_trajs

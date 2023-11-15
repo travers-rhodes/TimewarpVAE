@@ -53,7 +53,7 @@ import base_configs as bc
 for _ in range(5):
   for beta in [0.001]:#[0.001, 0.01, 0.1]:
     for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
-      for hidden_layers in [[200],[100],[50]]: 
+      for hidden_layers in [[200]]: 
          for training_data_added_timing_noise in [0.1]:
            for dec_side_hiddens in [[200]]: 
              paramdict = bc.func_side_tw
@@ -61,6 +61,7 @@ for _ in range(5):
              paramdict["dec_use_tanh"] = True
              paramdict["dec_use_elu"] = False 
              paramdict["dec_template_motion_hidden_layers"]=hidden_layers
+             paramdict["dec_complicated_function_latent_size"] = 200
              paramdict["scaltw_granularity"] = 199
              paramdict["scaltw_emb_conv_layers_channels"] = [32,32,32]
              paramdict["scaltw_emb_conv_layers_strides"] = [1,1,1]
