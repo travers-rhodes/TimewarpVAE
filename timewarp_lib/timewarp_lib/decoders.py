@@ -325,6 +325,7 @@ class OneDConvDecoderUpsampling(nn.Module):
             dec_gen_conv_layers_kernel_sizes = [5,5,5],
             dec_use_softplus = False,
             dec_use_elu = False,
+            dec_conv_use_elu = False,
             dec_use_tanh = False,
             dtype=torch.float,
             dec_initial_log_noise_estimate = None,
@@ -367,9 +368,12 @@ class OneDConvDecoderUpsampling(nn.Module):
         self.gen_fcs = nn.ModuleList(self.gen_fcs)
         self.gen_convs = nn.ModuleList(self.gen_convs)
 
+        # A backward incompatible change, followed by training with use_tanh simultaneous with use_elu
+        # led to the following unfortunate way to parse models in a backward-compatible fashion
         self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (
-           torch.nn.ELU() if dec_use_elu else (
-             (torch.nn.Tanh() if dec_use_tanh else torch.nn.ReLU())))
+               torch.nn.Tanh() if (dec_use_tanh and not dec_use_elu) else (
+               torch.nn.ELU() if ((dec_use_tanh and dec_use_elu) or dec_conv_use_elu) else 
+               torch.nn.ReLU()))
         self.latent_dim = latent_dim
 
     def get_mean_square_layer_weights(self):
