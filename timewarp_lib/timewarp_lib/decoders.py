@@ -442,5 +442,3 @@ class RateInvariantDecoder(OneDConvDecoderUpsampling):
 
       recon = pvtw.warp(x, gamma)
       return recon, z
-
-
