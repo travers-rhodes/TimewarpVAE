@@ -245,7 +245,10 @@ def train_model(**kwargs):
           encoder_grads = [param.grad.detach().flatten() for param in hi.encoder.parameters() if param.grad is not None]
           encoder_norm = torch.cat(encoder_grads).norm()
           timewarp_grads = [param.grad.detach().flatten() for param in hi.scalar_timewarper.parameters() if param.grad is not None]
-          timewarp_norm = torch.cat(timewarp_grads).norm()
+          if len(timewarp_grads) > 0:
+            timewarp_norm = torch.cat(timewarp_grads).norm()
+          else:
+            timewarp_norm = torch.tensor(0.)
 
           if max_decoder_grad_norm is None or max_decoder_grad_norm < decoder_norm:
             max_decoder_grad_norm = decoder_norm

@@ -9,16 +9,16 @@ import numpy as np
 
 import torch
 
-SCRATCHFOLDER="../results/rateinvariantvae"
+SCRATCHFOLDER="../results/forkrateinvariantvae"
 #os.makedirs(SCRATCHFOLDER)
 
 warnings.filterwarnings("ignore","Initializing zero-element tensors is a no-op")
 
 TRAJ_LEN=200
-NUM_CHANNELS = 2
-DATAFILE=f"../data/trainTest2DLetterARescaled.npz"
+NUM_CHANNELS = 7
+DATAFILE=f"../forkdata/forkTrajectoryData.npz"
 
-NUM_EPOCHS = 20000
+NUM_EPOCHS = 10000
 
 def train_and_save(latent_dim, paramdict, training_data_added_timing_noise):
   # https://stackoverflow.com/questions/10607688/how-to-create-a-file-name-with-the-current-date-time-in-python
@@ -40,7 +40,7 @@ def train_and_save(latent_dim, paramdict, training_data_added_timing_noise):
      training_data_added_timing_noise = training_data_added_timing_noise,
      logname = log_dir,
      batch_size=64,
-     log_to_wandb_name = "rateinvariantvae",
+     log_to_wandb_name = "forkrateinvariantvae",
      **paramdict
      )
 
@@ -49,8 +49,8 @@ def train_and_save(latent_dim, paramdict, training_data_added_timing_noise):
 import base_configs as bc
 
 for _ in range(5):
-  for latent_dim in [5,16,1,8,2,3,12,4,10,6,14]:
-    for beta in [0.001]:#,0.01]:#[0.001, 0.01, 0.1]:
+  for beta in [1.,0.1,0.01]:
+    for latent_dim in [3]:
       for training_data_added_timing_noise in [0.1]:
         for paramdict in [bc.rate_invariant_autoencoder]:
           paramdict["beta"]=beta
@@ -59,4 +59,5 @@ for _ in range(5):
           paramdict["use_rate_invariant_autoencoder"]=False
           paramdict["use_rate_invariant_vae"]=True
           paramdict["force_autoencoder"]=False
+          paramdict["dec_gen_conv_layers_channels"] = [32,32,NUM_CHANNELS]
           train_and_save(latent_dim, paramdict, training_data_added_timing_noise)
