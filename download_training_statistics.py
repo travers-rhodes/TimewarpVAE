@@ -2,7 +2,9 @@
 import pandas as pd
 import wandb
 
-for groupname, savename in (("rescaled", "project.csv"),("rateinvariantvae","projectrateinvariantvae.csv")):
+for groupname, savename in (("rescaled", "project.csv"),
+                            ("rescaledreviewfeedback","projectdebugrateinvariant.csv"),
+                            ("rateinvariantvae","projectrateinvariantvae.csv")):
   api = wandb.Api()
   entity, project = "teamtravers", "iclr24-project"
   runs = api.runs(entity + "/" + project, {"group": groupname})#linearvae
