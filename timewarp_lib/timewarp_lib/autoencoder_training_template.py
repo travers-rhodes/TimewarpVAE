@@ -43,7 +43,7 @@ def train_model(**kwargs):
   log_to_wandb_name = (kwargs["log_to_wandb_name"] 
                              if "log_to_wandb_name" in kwargs else None)
   if log_to_wandb_name is not None:
-    run = wandb.init(project="iclr24-project", entity="teamtravers", config=config, reinit=True, group=log_to_wandb_name)
+    run = wandb.init(project="ANONYMOUS-project", entity="teamANONYMOUS", config=config, reinit=True, group=log_to_wandb_name)
 
   device = kwargs["device"]
 

@@ -4,7 +4,7 @@ import wandb
 
 for groupname, savename in (("retrainedforkdata", "fork_project.csv"),("forkrateinvariantvae","forkprojectrateinvariantvae.csv")):
   api = wandb.Api()
-  entity, project = "teamtravers", "iclr24-project"
+  entity, project = "teamANONYMOUS", "anonymous-project"
   runs = api.runs(entity + "/" + project, {"group": groupname})
   
   summary_list, config_list, name_list = [], [], []

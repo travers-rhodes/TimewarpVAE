@@ -6,7 +6,7 @@ for groupname, savename in (("rescaled", "project.csv"),
                             ("rescaledreviewfeedback","projectdebugrateinvariant.csv"),
                             ("rateinvariantvae","projectrateinvariantvae.csv")):
   api = wandb.Api()
-  entity, project = "teamtravers", "iclr24-project"
+  entity, project = "teamANONYMOUS", "ANONYMOUS-project"
   runs = api.runs(entity + "/" + project, {"group": groupname})#linearvae
   
   summary_list, config_list, name_list = [], [], []
