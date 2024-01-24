@@ -1,6 +1,10 @@
 all: | forkdata/forkTrajectoryData.npz data/trainTest2DLetterACache.npz
 
-forkdata/forkTrajectoryData.npz: | forkdata/20230222_194413/tip_pose_45.npy
+forkdata/forkTrajectoryData.npz: 
+	# we package the forkdata/forkTrajectoryData.npz with our zip file.
+	# However, iff you're curious how to make it, you can move it and re-make and the command below 
+	# will generate its prerequisite and then re-make it.
+	$(MAKE) forkdata/20230222_194413/tip_pose_45.npy
 	jupyter nbconvert --execute --to notebook --inplace forkdata_formatting/CleanAndRandomlySampleForkData.ipynb
 
 forkdata/20230222_194413/tip_pose_45.npy: | forkdata/fork_trajectory_recordings.zip

@@ -1,5 +1,4 @@
 data/*
-forkdata/*
 __pycache__
 results/
 wandb
