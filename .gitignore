@@ -7,3 +7,4 @@ compile_commands.json
 paper_calculations/dmpmodels
 paper_images/*.nbconvert.ipynb
 .cache
+*.nbconvert.ipynb
