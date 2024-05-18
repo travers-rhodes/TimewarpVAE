@@ -4,6 +4,8 @@ import torch.nn as nn
 import math
 import numpy as np
 
+PRINT_SIZES=True
+
 class FeedForwardLayer(nn.Module):
     def __init__(self,
             in_dim,
@@ -404,7 +406,11 @@ class OneDConvEncoder(nn.Module):
         # batchsize x self.traj_channels x self.traj_len
         # when doing 1D convolution
         # (see https://pytorch.org/docs/stable/generated/torch.nn.Conv1d.html)
+        if PRINT_SIZES:
+          print("before transpose", x.shape)
         x = torch.transpose(x,1,2)
+        if PRINT_SIZES:
+          print("after transpose", x.shape)
         # NOTE THE SWITCHED ORDERING HERE
         xbatch_size, xtraj_channels, xtraj_len = x.shape
         assert xtraj_channels == self.traj_channels, f"input data had {xtraj_channels} channels but should have had {self.traj_channels}"
@@ -414,13 +420,21 @@ class OneDConvEncoder(nn.Module):
         for conv in self.emb_convs:
             layer = self.dropout(layer)
             layer = self.nonlinearity(conv(layer))
+            if PRINT_SIZES:
+              print("did convolution ", layer.shape)
         # flatten all but the 0th dimension
         layer = torch.flatten(layer, 1)
+        if PRINT_SIZES:
+          print("flattened",layer.shape)
         for fc in self.emb_fcs:
             layer = self.nonlinearity(fc(layer))
+            if PRINT_SIZES:
+              print("fc done", layer.shape)
 
         mu = self.fcmu(layer)
         logvar = self.fclogvar(layer)
+        if PRINT_SIZES:
+          print("final", mu.shape)
 
         if self.emb_activate_last_layer:
           mu = self.nonlinearity(mu)

@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 TESTING=True
+PRINT_SIZES = True
 
 class TemplateMotionGeneration(nn.Module):
     def __init__(self, input_dim, passthrough_dim, layer_widths, dtype, use_softplus=False, use_elu=False, use_tanh = False,
@@ -78,9 +79,13 @@ class TemplateMotionGeneration(nn.Module):
             assert len(t.shape) == 2, "batch of t vals should be two dimensional"
             assert x.shape[0] == t.shape[0], "inputs should have same batchsize"
         layer = torch.hstack((x,t))
+        if PRINT_SIZES:
+          print("motion_model_input", layer.shape)
         for i, fc in enumerate(self.all_layers):
             if i != len(self.all_layers) - 1:
                 layer = self.nonlinearity(fc(layer))
             else: # don't nonlinear the last layer
                 layer = fc(layer)
+            if PRINT_SIZES:
+              print("after fc: ", layer.shape)
         return layer

@@ -3,6 +3,8 @@ import torch.nn as nn
 import math
 import numpy as np
 
+PRINT_SIZES=True
+
 import timewarp_lib.utils.function_style_template_motion as tm
 import timewarp_lib.parameterized_vector_time_warper as pvtw
 # This learns a function that takes in as input a time and returns the pose at that time.
@@ -402,6 +404,8 @@ class OneDConvDecoderUpsampling(nn.Module):
       # (this is only used if we're training a conv decoder on a rate_invariant
       # model). Not sure why we would ever do that.... but shh.
       layer = zs[:,-self.latent_dim:]
+      if PRINT_SIZES:
+        print("input size", layer.size)
       num_fcs = len(self.gen_fcs)
       num_convs = len(self.gen_convs)
       for i, fc in enumerate(self.gen_fcs):
@@ -409,9 +413,13 @@ class OneDConvDecoderUpsampling(nn.Module):
           # special logic to not do ReLu on last FC layer if we only have Fcs
           if not (num_convs == 0 and i+1 == num_fcs):
             layer = self.nonlinearity(layer)
+          if PRINT_SIZES:
+            print("fc out size", layer.size)
       layer = layer.view(-1,
               self.gen_first_conv_channels,
               self.gen_first_traj_len)
+      if PRINT_SIZES:
+        print("reshaped size ", layer.size)
       for i, conv in enumerate(self.gen_convs):
           # CONV works on shapes (batchsize, traj_channels, traj_len)
           layer = torch.repeat_interleave(layer, self.gen_upsampling_factors[i], axis=2)
@@ -419,6 +427,8 @@ class OneDConvDecoderUpsampling(nn.Module):
           # special logic to not do ReLu on last conv layer 
           if not (i+1 == num_convs):
             layer = self.nonlinearity(layer)
+          if PRINT_SIZES:
+            print("after conv size ", layer.size)
 
       # again, remember that CONV expects (batchsize, traj_channels, traj_len)
       # but all the rest of our code wants those last two switched.
