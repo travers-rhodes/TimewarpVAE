@@ -238,6 +238,24 @@ def compute_generator_jacobian_optimized(decode_func, zs, ts, epsilon_scale):
     return(recons)
 
 
+def fast_sample(num_timesteps, samp_mean, samp_cov, num_new_samp_points, embedding_dimension, rng):
+  sampled_latents = []
+  sampled_scaled_ts = []
+  for timindex in range(int(num_new_samp_points/num_timesteps)):
+    #sample both zs and ts
+    samp_zs_and_ts = rng.multivariate_normal(mean=samp_mean, cov=samp_cov,
+                            size=int(num_timesteps))
+    # but only use one of the timesteps
+    # (so we don't reuse the same latent value many times for different timesteps)
+    # the result is MANY latents, each paired with a trajectory of only one step
+    samp_zs = samp_zs_and_ts[:,:embedding_dimension]
+    samp_ts = samp_zs_and_ts[:,embedding_dimension + timindex]
+    sampled_latents.append(samp_zs)
+    sampled_scaled_ts.append(samp_ts)
+  sampled_latents = np.array(sampled_latents).reshape(num_new_samp_points, embedding_dimension)
+  sampled_scaled_ts = np.array(sampled_scaled_ts).reshape(num_new_samp_points, 1, 1)
+  return sampled_latents, sampled_scaled_ts
+
 # noisy_zs and scaled_ts should be torch tensors
 # of shapes (batch_size, latent_dim)
 # and (batch_size, 1) respectively
@@ -259,21 +277,8 @@ def sample_latent_points_and_times(noisy_zs, scaled_ts, num_new_samp_points):
   samp_cov = np.cov(samp_embs.T.detach().cpu().numpy())
   if samp_cov.size==1:
     samp_cov = samp_cov.reshape((1,1))
-  sampled_latents = []
-  sampled_scaled_ts = []
-  for timindex in range(num_timesteps):
-    #sample both zs and ts
-    samp_zs_and_ts = np.random.multivariate_normal(mean=samp_mean, cov=samp_cov,
-                            size=int(num_new_samp_points/num_timesteps))
-    # but only use one of the timesteps
-    # (so we don't reuse the same latent value many times for different timesteps)
-    # the result is MANY latents, each paired with a trajectory of only one step
-    samp_zs = samp_zs_and_ts[:,:embedding_dimension]
-    samp_ts = samp_zs_and_ts[:,embedding_dimension + timindex]
-    sampled_latents.append(samp_zs)
-    sampled_scaled_ts.append(samp_ts)
-  sampled_latents = np.array(sampled_latents).reshape(num_new_samp_points, embedding_dimension)
-  sampled_scaled_ts = np.array(sampled_scaled_ts).reshape(num_new_samp_points, 1, 1)
+  rng = np.random.default_rng()
+  sampled_latents, sampled_scaled_ts = fast_sample(num_timesteps, samp_mean, samp_cov, num_new_samp_points, embedding_dimension, rng)
   sampled_zs = torch.tensor(sampled_latents, dtype=dtype).to(device)
   sampled_ts = torch.tensor(sampled_scaled_ts, dtype=dtype).to(device)
   return (sampled_zs, sampled_ts)

@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-def reparameterize(mu, logvar):
+def reparameterize(mu, logvar,only_perturb_after_index=0):
         std = torch.exp(0.5*logvar)
         eps = torch.randn((mu.shape[0], mu.shape[1]), device=mu.device)
+        eps[:,:only_perturb_after_index] = 0
         return mu + eps*std
 
 class VAE(nn.Module):
-    def __init__(self, encoder, decoder, scalar_timewarper, spherical_noise_instead_of_diagonal = False):
+    def __init__(self, latent_dim, encoder, decoder, scalar_timewarper, spherical_noise_instead_of_diagonal = False, use_rate_invariant_vae = False, force_autoencoder = False):
         super(VAE, self).__init__()
 
         # The following parameters are all learnable modules
@@ -17,6 +18,12 @@ class VAE(nn.Module):
         self.scalar_timewarper = scalar_timewarper
 
         self.spherical_noise_instead_of_diagonal = spherical_noise_instead_of_diagonal
+        self.latent_dim = latent_dim
+        self.use_rate_invariant_vae = use_rate_invariant_vae
+        # Force autoencoder means don't actually add any noise when training
+        # in that case, set all indices up to infinity to 0 in the noise vector
+        self.force_autoencoder = force_autoencoder
+        self.only_perturb_after_index = np.iinfo(np.int32).max if self.force_autoencoder else -self.latent_dim if self.use_rate_invariant_vae else 0
 
     # forward but don't add any of the encoder noise
     def noiseless_forward(self, xs, ts):
@@ -49,7 +56,7 @@ class VAE(nn.Module):
       if self.spherical_noise_instead_of_diagonal:
         # only use the first logvar---ignore the rest (they'll be broadcast copied from the 1st)
         logvar = logvar[:,:1]
-      z = reparameterize(mu,logvar)
+      z = reparameterize(mu,logvar,self.only_perturb_after_index)
       x, broadcast_zs = self.decoder.decode_and_return_noisy_embedding_node(z, scaled_ts)
       return x, mu, logvar, z, scaled_ts, broadcast_zs
     

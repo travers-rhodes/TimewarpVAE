@@ -3,7 +3,10 @@ import torch.nn as nn
 import math
 import numpy as np
 
+PRINT_SIZES=True
+
 import timewarp_lib.utils.function_style_template_motion as tm
+import timewarp_lib.parameterized_vector_time_warper as pvtw
 # This learns a function that takes in as input a time and returns the pose at that time.
 # This is different from a ConvStyleDecoder which returns several poses at fixed timesteps.
 class ComplicatedFunctionStyleDecoder(nn.Module):
@@ -14,6 +17,7 @@ class ComplicatedFunctionStyleDecoder(nn.Module):
         dec_template_motion_hidden_layers=[1000],
         dec_use_softplus = False,
         dec_use_elu = False,
+        dec_use_tanh = False,
         dec_template_use_custom_initialization = False,
         # grad_t is the constant, relatively large, abs value of default slope of first 
         # linear layer in the $t$ direction
@@ -49,12 +53,15 @@ class ComplicatedFunctionStyleDecoder(nn.Module):
                   layer_widths= template_motion_hidden_layers + [dec_complicated_function_latent_size],
                   use_softplus = dec_use_softplus,
                   use_elu = dec_use_elu,
+                  use_tanh = dec_use_tanh,
                   use_custom_initialization=dec_template_use_custom_initialization,
                   custom_initialization_grad_t=dec_template_custom_initialization_grad_t,
                   custom_initialization_t_intercept_padding=dec_template_custom_initialization_t_intercept_padding,
                   dtype=dtype)
   
-       self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (torch.nn.ELU() if dec_use_elu else torch.nn.ReLU())
+       self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (
+           torch.nn.ELU() if dec_use_elu else (
+             (torch.nn.Tanh() if dec_use_tanh else torch.nn.ReLU())))
         
        previous_layer_width = latent_dim
        self.all_side_layers = []
@@ -145,19 +152,27 @@ class FunctionStyleDecoder(nn.Module):
   
        # an idempotent operation to convert the (possibly) numpy scalar or scalar to a scalar
        self.dec_spatial_regularization_factor = np.array(dec_spatial_regularization_factor).item()
+       self.latent_dim = np.array(latent_dim).item()
 
     def get_mean_square_layer_weights(self):
       return self.motion_model.mean_square_layer_weights()
 
     # given a batch of zs of shape (batchsize, latent_dim)
-    def decode_and_return_noisy_embedding_node(self, zs, ts):
+    def decode_and_return_noisy_embedding_node(self, in_zs, ts):
       assert len(ts.shape)==3  and ts.shape[2] == 1, "we're assuming you're passing in a single set of ts with shape (batchsize, timevalues, timechannel=1)"
-      assert zs.shape[0] == ts.shape[0], "we're assuming you're passing in zs and ts of the same shape"
+      assert in_zs.shape[0] == ts.shape[0], "we're assuming you're passing in zs and ts of the same shape"
 
       batchsize = ts.shape[0]
       timesteps = ts.shape[1]
-      latent_dim = zs.shape[1]
-      broadcast_zs = zs.reshape((batchsize,1,latent_dim)).expand((batchsize,timesteps,latent_dim))
+      latent_dim = self.latent_dim
+      # here, we add logic which is trivial/do nothing if
+      # we're taking in a latent dim of the expected size.
+      # However, if we're taking in a rate_invariant latent dim,
+      # then we just want to take the last latent_dim values to decode
+      # (this is only used if we're training a conv decoder on a rate_invariant
+      # model). Not sure why we would ever do that.... but shh.
+      layer = in_zs[:,-latent_dim:]
+      broadcast_zs = layer.reshape((batchsize,1,latent_dim)).expand((batchsize,timesteps,latent_dim))
       broadcast_zs = broadcast_zs.reshape((batchsize*timesteps,latent_dim))
       # Dividing by the spatial regularization factor has the effect of
       # (by default, in order for training to have the model return the same pattern) 
@@ -311,7 +326,9 @@ class OneDConvDecoderUpsampling(nn.Module):
             dec_gen_upsampling_factors = [2,2,1],
             dec_gen_conv_layers_kernel_sizes = [5,5,5],
             dec_use_softplus = False,
+            dec_use_elu = False,
             dec_conv_use_elu = False,
+            dec_use_tanh = False,
             dtype=torch.float,
             dec_initial_log_noise_estimate = None,
             **kwargs):
@@ -353,7 +370,13 @@ class OneDConvDecoderUpsampling(nn.Module):
         self.gen_fcs = nn.ModuleList(self.gen_fcs)
         self.gen_convs = nn.ModuleList(self.gen_convs)
 
-        self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (torch.nn.ELU() if dec_conv_use_elu else torch.nn.ReLU())
+        # A backward incompatible change, followed by training with use_tanh simultaneous with use_elu
+        # led to the following unfortunate way to parse models in a backward-compatible fashion
+        self.nonlinearity = torch.nn.Softplus() if dec_use_softplus else (
+               torch.nn.Tanh() if (dec_use_tanh and not dec_use_elu) else (
+               torch.nn.ELU() if ((dec_use_tanh and dec_use_elu) or dec_conv_use_elu) else 
+               torch.nn.ReLU()))
+        self.latent_dim = latent_dim
 
     def get_mean_square_layer_weights(self):
         sum_weights = 0
@@ -374,7 +397,15 @@ class OneDConvDecoderUpsampling(nn.Module):
     # given a batch of zs
     # you can completely ignore the ts
     def decode_and_return_noisy_embedding_node(self, zs, ts):
-      layer = zs
+      # here, we add logic which is trivial/do nothing if
+      # we're taking in a latent dim of the expected size.
+      # However, if we're taking in a rate_invariant latent dim,
+      # then we just want to take the last latent_dim values to decode
+      # (this is only used if we're training a conv decoder on a rate_invariant
+      # model). Not sure why we would ever do that.... but shh.
+      layer = zs[:,-self.latent_dim:]
+      if PRINT_SIZES:
+        print("input size", layer.size)
       num_fcs = len(self.gen_fcs)
       num_convs = len(self.gen_convs)
       for i, fc in enumerate(self.gen_fcs):
@@ -382,9 +413,13 @@ class OneDConvDecoderUpsampling(nn.Module):
           # special logic to not do ReLu on last FC layer if we only have Fcs
           if not (num_convs == 0 and i+1 == num_fcs):
             layer = self.nonlinearity(layer)
+          if PRINT_SIZES:
+            print("fc out size", layer.size)
       layer = layer.view(-1,
               self.gen_first_conv_channels,
               self.gen_first_traj_len)
+      if PRINT_SIZES:
+        print("reshaped size ", layer.size)
       for i, conv in enumerate(self.gen_convs):
           # CONV works on shapes (batchsize, traj_channels, traj_len)
           layer = torch.repeat_interleave(layer, self.gen_upsampling_factors[i], axis=2)
@@ -392,8 +427,32 @@ class OneDConvDecoderUpsampling(nn.Module):
           # special logic to not do ReLu on last conv layer 
           if not (i+1 == num_convs):
             layer = self.nonlinearity(layer)
+          if PRINT_SIZES:
+            print("after conv size ", layer.size)
 
       # again, remember that CONV expects (batchsize, traj_channels, traj_len)
       # but all the rest of our code wants those last two switched.
       # so, switch them! 
       return(layer.transpose(1,2)), zs
+
+# for this API, for simplicity, latent_dim needs to be 
+class RateInvariantDecoder(OneDConvDecoderUpsampling):
+  def __init__(self, ria_T, **kwargs):
+    super(RateInvariantDecoder, self).__init__(**kwargs)
+    # the first T latent dimensions are actually the timewarping dims
+    self.T = ria_T
+
+  #overwrite this method to differently use the first self.T and last latent_dim variables
+  def decode_and_return_noisy_embedding_node(self, mu, ts):
+      # latents are last indices
+      z = mu[:, self.T:]
+
+      # mu is of shape (batch_size, T+d), so we break it apart into two separate tensors
+      # the first, v is the timing parameters
+      v = mu[:, :self.T]
+      # the timing parameters are converted to gamma parameters by squaring and dividing by the sum of the squares
+      gamma = v**2 / torch.sum(v**2, dim=1, keepdim=True)
+      x, _ = super().decode_and_return_noisy_embedding_node(z, None)
+
+      recon = pvtw.warp(x, gamma)
+      return recon, z

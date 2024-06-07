@@ -48,7 +48,7 @@ def train_model(**kwargs):
   log_to_wandb_name = (kwargs["log_to_wandb_name"] 
                              if "log_to_wandb_name" in kwargs else None)
   if log_to_wandb_name is not None:
-    run = wandb.init(project="iclr24-project", entity="teamtravers", config=config, reinit=True, group=log_to_wandb_name)
+    run = wandb.init(project="ANONYMOUS-project", entity="teamANONYMOUS", config=config, reinit=True, group=log_to_wandb_name)
 
   device = kwargs["device"]
 
@@ -107,6 +107,8 @@ def train_model(**kwargs):
                              if "curv_loss_divide_by_zero_epsilon" in kwargs else None)
   batch_size = kwargs["batch_size"]
 
+  use_rate_invariant_vae = kwargs.get("use_rate_invariant_vae",False)
+
   ## model_save_dir should NOT already exist
   os.makedirs(model_save_dir)
 
@@ -146,6 +148,9 @@ def train_model(**kwargs):
   (time_optim, dec_optim, emb_optim, noise_optim) = initialize_optimizers(hi, scalar_timewarping_lr, decoding_lr, encoding_lr, scalar_timewarping_eps, decoding_eps, encoding_eps, useAdam, decoding_l2_weight_decay, learn_decoder_variance, noise_lr, noise_eps)
   num_batches_seen = 0
   record_loss_every = 100
+  # each epoch, use the previous embeddings to sample from for curvvae loss (if sampling each batch)
+  previous_all_embs = None
+  previous_all_scaled_ts = None
   for i in range(num_epochs):
       dec_optim.zero_grad()
       if scalar_timewarping_lr > 0:
@@ -159,6 +164,9 @@ def train_model(**kwargs):
       time_endpoint_loss = torch.tensor(0.,dtype=dtype).to(device)
       all_embs = [] 
       all_scaled_ts = []
+      max_decoder_grad_norm = None
+      max_encoder_grad_norm = None
+      max_timewarp_grad_norm = None
       for (training_ts_for_mu, training_ys_for_mu_raw) in training_dataloader:
         if step_each_batch:
           dec_optim.zero_grad()
@@ -183,7 +191,12 @@ def train_model(**kwargs):
           recon_loss += batch_recon_loss 
 
         batch_recon_loss = batch_recon_loss / torch.exp(hi.decoder.log_decoder_variance)
-        batch_kld_loss = tu.kl_loss_term(meanemb, logvaremb)*len(training_ts_for_mu)
+        if use_rate_invariant_vae:
+          # if we're doing rate_invariant_vae just kl term on the spatial component
+          # which is the last latent_dim elements
+          batch_kld_loss = tu.kl_loss_term(meanemb[:,-latent_dim:], logvaremb[:,-latent_dim:])*len(training_ts_for_mu)
+        else:
+          batch_kld_loss = tu.kl_loss_term(meanemb, logvaremb)*len(training_ts_for_mu)
         kld_loss += batch_kld_loss
        
         if device == "cuda":
@@ -218,15 +231,42 @@ def train_model(**kwargs):
           # only do time_regularization if we've passed a certain amount of training
           if i >= pre_time_learning_epochs and scalar_timewarper_timereg > 0:
             loss += scalar_timewarper_timereg * batch_time_weight_loss
+          # curvature loss requires a batch in order to sample a bunch of points
+          # use the batch from the pevious epoch
+          if curv_loss_penalty_weight != 0 and previous_all_embs is not None:# or kwargs["decoder_name"] == "functional_decoder":
+            curv_loss = tu.curvature_loss_term(hi.decoder.decode, previous_all_embs, previous_all_scaled_ts, 
+                              curv_loss_num_new_sampling_points, curv_loss_epsilon_scale, curv_loss_divide_by_zero_epsilon)
+            loss += curv_loss_penalty_weight * curv_loss
           loss.backward()
+
+#https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/8
+          decoder_grads = [param.grad.detach().flatten() for param in hi.decoder.parameters() if param.grad is not None]
+          decoder_norm = torch.cat(decoder_grads).norm()
+          encoder_grads = [param.grad.detach().flatten() for param in hi.encoder.parameters() if param.grad is not None]
+          encoder_norm = torch.cat(encoder_grads).norm()
+          timewarp_grads = [param.grad.detach().flatten() for param in hi.scalar_timewarper.parameters() if param.grad is not None]
+          if len(timewarp_grads) > 0:
+            timewarp_norm = torch.cat(timewarp_grads).norm()
+          else:
+            timewarp_norm = torch.tensor(0.)
+
+          if max_decoder_grad_norm is None or max_decoder_grad_norm < decoder_norm:
+            max_decoder_grad_norm = decoder_norm
+          if max_encoder_grad_norm is None or max_encoder_grad_norm < encoder_norm:
+            max_encoder_grad_norm = encoder_norm
+          if max_timewarp_grad_norm is None or max_timewarp_grad_norm < timewarp_norm:
+            max_timewarp_grad_norm = timewarp_norm
+
           dec_optim.step()
           if learn_decoder_variance:
             noise_optim.step()
           if scalar_timewarping_lr > 0 and i >= pre_time_learning_epochs:
             time_optim.step()
           emb_optim.step()
-      all_embs_torch = torch.cat(all_embs)
-      all_scaled_ts_torch = torch.cat(all_scaled_ts)
+      all_embs_torch = torch.cat(all_embs).detach()
+      all_scaled_ts_torch = torch.cat(all_scaled_ts).detach()
+      previous_all_embs = all_embs_torch
+      previous_all_scaled_ts = all_scaled_ts_torch
 
       if curv_loss_penalty_weight != 0:# or kwargs["decoder_name"] == "functional_decoder":
         curv_loss = tu.curvature_loss_term(hi.decoder.decode, all_embs_torch, all_scaled_ts_torch, 
@@ -330,6 +370,9 @@ def train_model(**kwargs):
         writer.add_scalar("train/dec_weight_loss", decoder_mean_square_layer_weights.detach().cpu().numpy(), num_batches_seen)
         writer.add_scalar("train/dec_spatial_derivative_loss", spatial_derivative_loss.detach().cpu().numpy(), num_batches_seen)
         writer.add_scalar("train/time_endpoint_loss", np.sqrt(time_endpoint_loss.detach().cpu().numpy()), num_batches_seen)
+        writer.add_scalar("train/max_decoder_grad_norm", max_decoder_grad_norm.detach().cpu().numpy(), num_batches_seen)
+        writer.add_scalar("train/max_encoder_grad_norm", max_encoder_grad_norm.detach().cpu().numpy(), num_batches_seen)
+        writer.add_scalar("train/max_timewarp_grad_norm", max_timewarp_grad_norm.detach().cpu().numpy(), num_batches_seen)
         writer.add_scalar("test/noiselessRMSE", np.sqrt(test_raw_recon_loss.detach().cpu().numpy()), num_batches_seen)
         writer.add_scalar("test/alignedRMSE", np.sqrt(test_dtw_recon_loss.detach().cpu().numpy()), num_batches_seen)
         if log_to_wandb_name is not None:
@@ -344,6 +387,9 @@ def train_model(**kwargs):
                      "train_time_weight_loss": time_weight_loss.detach().cpu().numpy(),
                      "train/dec_weight_loss": decoder_mean_square_layer_weights.detach().cpu().numpy(),
                      "train/dec_spatial_derivative_loss": spatial_derivative_loss.detach().cpu().numpy(),
+                     "train/max_decoder_grad_norm": max_decoder_grad_norm.detach().cpu().numpy(),
+                     "train/max_encoder_grad_norm": max_encoder_grad_norm.detach().cpu().numpy(),
+                     "train/max_timewarp_grad_norm": max_timewarp_grad_norm.detach().cpu().numpy(),
                      "train_time_endpoint_loss": np.sqrt(time_endpoint_loss.detach().cpu().numpy()),
                      "test_noiselessRMSE": np.sqrt(test_raw_recon_loss.detach().cpu().numpy()),
                      "test_alignedRMSE": np.sqrt(test_dtw_recon_loss.detach().cpu().numpy())})

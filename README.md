@@ -45,7 +45,7 @@ You can download pretrained models here for both the fork dataset and the letter
 
 
 ## Generate Figures
-1) Run `download_training_statistics.py` and `download_fork_training_statistics.py` to copy summary results from wandb and store them in `project.csv` and `fork_project.csv`
+1) Run `download_training_statistics.py` and `download_fork_training_statistics.py` to copy summary results from wandb and store them in `project.csv` and `fork_project.csv` (these csvs are already included for the models in the paper)
 2) Run Ablations.ipynb, and copy the exemplar model timestamps to `copy_models.sh` and to `paper_images/InterpolateTwoAs-NNModel.ipynb`
 3) Run `copy_models.sh` (only necessary if you ran the models on a different machine and have access to it through ssh. you'll need to update the machine name)
 4) Run `create_figures.sh`

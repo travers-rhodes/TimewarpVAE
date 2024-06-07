@@ -1,5 +1,9 @@
 data/*
 forkdata/*
+paper_images/animatedLatentLetterA/*
+paper_images/simpleInterpGif/*
+video_calculations/animatedLatent/*
+video_calculations/forkLatentSweepAnimation/*
 __pycache__
 results/
 wandb
@@ -7,3 +11,5 @@ compile_commands.json
 .ipynb_checkpoints
 paper_calculations/dmpmodels
 paper_images/*.nbconvert.ipynb
+.cache
+*.nbconvert.ipynb
