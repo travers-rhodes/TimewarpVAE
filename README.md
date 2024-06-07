@@ -2,7 +2,7 @@
 
 # TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories
 
-This repository is the official implementation of TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories. 
+This repository is the official implementation of [TimewarpVAE: Simultaneous Time-Warping and Representation Learning of Trajectories](https://arxiv.org/abs/2310.16027). 
 
 ## Requirements and Setup
 Install needed packages using something like
@@ -41,8 +41,7 @@ created and applied the Parametric DMP model using
 
 ## Pre-trained Models
 
-You can download pretrained models here for both the fork dataset and the letter A dataset: https://ANONYMOUS.URLREMOVEDFORREVIEW/v/TimewarpVAEReplicationData
-
+You can download pretrained models here for both the fork dataset and the letter A dataset: https://cornell.box.com/v/TimewarpVAEReplicationData
 
 
 ## Generate Figures
