@@ -2,6 +2,7 @@ data/*
 forkdata/*
 paper_images/animatedLatentLetterA/*
 paper_images/simpleInterpGif/*
+video_calculations/animatedLatent/*
 __pycache__
 results/
 wandb
