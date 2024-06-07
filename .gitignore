@@ -1,5 +1,7 @@
 data/*
 forkdata/*
+paper_images/animatedLatentLetterA/*
+paper_images/simpleInterpGif/*
 __pycache__
 results/
 wandb
